@@ -1,4 +1,5 @@
 .vscode
+output
 *.gem
 *.rbc
 /.config
