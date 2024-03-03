@@ -40,30 +40,56 @@ def save_thank_you_letter(id, form_letter)
 
 end
 
+def get_contents
+  CSV.open(
+    'event_attendees.csv',
+    headers: true,
+    header_converters: :symbol
+  )
+end
+
+def create_letters_from(contents)
+  template_letter = File.read('form_letter.erb')
+  erb_template = ERB.new(template_letter)
+
+  contents.each do |row|
+    id = row[0]
+    name = row[:first_name]
+    zipcode = row[:zipcode]
+    phone = row[:homephone]
+
+    zipcode = clean_zipcode(zipcode)
+    phone = clean_phone(phone)
+
+    legislators = legislators_by_zipcode(zipcode)
+
+    form_letter = erb_template.result(binding)
+    save_thank_you_letter(id, form_letter)
+
+    puts "#{name} #{zipcode} #{phone}"
+  end
+  contents.rewind
+end
+
+def get_dates_from(contents)
+  dates = contents.map{|row| Time.strptime(row[:regdate], "%m/%d/%y %k:%M")}
+  contents.rewind
+  dates
+end
+
+def hour_with_highest_registrations(contents)
+  best_hour = get_dates_from(contents).map{|dt| dt.hour}.tally().max_by{ |k,v| v}.first
+  puts "Best Hour => #{best_hour}"
+end
+
+def dow_with_highest_registrations(contents)
+  best_dow = get_dates_from(contents).map{|dt| Date::DAYNAMES[dt.wday]}.tally().max_by{ |k,v| v}.first
+  puts "Best Day => #{best_dow}"
+end
+
 puts 'Event Manager Initialized!'
 
-contents = CSV.open(
-  'event_attendees.csv',
-  headers: true,
-  header_converters: :symbol
-)
-
-template_letter = File.read('form_letter.erb')
-erb_template = ERB.new(template_letter)
-
-contents.each do |row|
-  id = row[0]
-  name = row[:first_name]
-  zipcode = row[:zipcode]
-  phone = row[:homephone]
-
-  zipcode = clean_zipcode(zipcode)
-  phone = clean_phone(phone)
-
-  legislators = legislators_by_zipcode(zipcode)
-
-  form_letter = erb_template.result(binding)
-  save_thank_you_letter(id, form_letter)
-
-  puts "#{name} #{phone}"
-end
+contents = get_contents
+create_letters_from(contents)
+hour_with_highest_registrations(contents)
+dow_with_highest_registrations(contents)

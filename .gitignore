@@ -1,5 +1,6 @@
 .vscode
 output
+*.csv
 *.gem
 *.rbc
 /.config
